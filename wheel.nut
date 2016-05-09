@@ -10,8 +10,6 @@ class WheelIcon extends ConveyorSlot {
     fade_end = null
     fade_inc = null
     
-    t = null
-    
     constructor(icon_index, wheel_info) {
         base.constructor(fe.add_artwork("wheel"))
         this.wheel_info = wheel_info
@@ -30,9 +28,6 @@ class WheelIcon extends ConveyorSlot {
             m_obj.height = base_height * selected_scale
             m_obj.alpha = 255
             m_obj.zorder = 1000     //TODO: zorder doesn't work here
-            
-            t = fe.add_text("<null>", 0, 0, fe.layout.width, 50)
-            t.align = Align.Left
         } else {
             m_obj.width = base_width
             m_obj.height = base_height
@@ -46,25 +41,27 @@ class WheelIcon extends ConveyorSlot {
         local progress_centered = progress + 1.0 / (wheel_info.num_icons*2)
         local step = 1.0 / wheel_info.num_icons
         local a = (wheel_info.arc * progress_centered) - wheel_info.arc/2
-        //local s = fe.layout.width - base_width
         local x = wheel_info.x + cos( a ) * wheel_info.radius + wheel_info.offset_x
+		local rotation = null
+		if (wheel_info.do_rotate) {
+			rotation = m_obj.rotation = a * 180 / PI
+		} else {
+			rotation = 0
+		}
         if (wheel_info.side == "left") {
             m_obj.x = x
-			m_obj.rotation = a * 180 / PI
+			m_obj.rotation = rotation
         } else {
             m_obj.x = fe.layout.width - x - (base_width * selected_scale)
-			m_obj.rotation = -a * 180 / PI
+			m_obj.rotation = -rotation
         }
         m_obj.y = wheel_info.y + sin( a ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
-        //m_obj.rotation = a * 180 / PI
-        //m_obj.rotation = -a * 180 / PI
         // Selection icon gets special treatment
         if (index == 0) {
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
             m_obj.alpha = 255 - abs(192.0 * fade_amount)
             m_obj.height = base_height*selected_scale - abs(base_height*(selected_scale-1) * (fade_amount))
             m_obj.width = m_obj.height * 2
-            t.msg = 255 - abs(192.0 * fade_amount)
         }
     }
 }
@@ -97,6 +94,7 @@ class Wheel {
             num_icons = num_icons
             icon_sep = arc_angle/ (num_icons - 1)
             side = side
+			do_rotate = true
         }
         
         local icons = []
@@ -129,4 +127,8 @@ class Wheel {
     function rerender() {
         _conveyor.reset_progress()
     }
+	
+	function rotation(yesorno) {
+		wheel_info.do_rotate = yesorno
+	}
 }

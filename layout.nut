@@ -18,6 +18,12 @@ local debug_y = 200
 local debug_width = fe.layout.width/2
 local debug_height = 50
 local debug_curvature = fe.add_text("Curvature: " + w._curvature,
-									debug_x, debug_y, debug_width, debug_height)
-local debug_curvature = fe.add_text("Number of icons: " + w.wheel_info.num_icons,
-									debug_x, debug_y + debug_height*1, debug_width, debug_height)
+                                    debug_x, debug_y, debug_width, debug_height)
+local debug_numicons = fe.add_text("Number of icons: " + w.wheel_info.num_icons,
+                                    debug_x, debug_y + debug_height*1, debug_width, debug_height)
+local debug_side = fe.add_text("Wheel side: " + w.wheel_info.side,
+                               debug_x, debug_y + debug_height*2, debug_width, debug_height)
+local debug_speed = fe.add_text("Transition speed: " + w._conveyor.transition_ms,
+                                debug_x, debug_y + debug_height*3, debug_width, debug_height)
+local debug_speed = fe.add_text("Rotation: " + w.wheel_info.do_rotate,
+                                debug_x, debug_y + debug_height*4, debug_width, debug_height)
