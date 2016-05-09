@@ -1,5 +1,9 @@
 fe.load_module("conveyor");
 
+//TODO: spin direction
+//TODO: Replace missing logos with text
+//TOOD: fix weird zoom on hilight icon on right wheels
+
 class WheelIcon extends ConveyorSlot {
     index = null
     wheel_info = null
@@ -112,7 +116,7 @@ class Wheel {
 		set_icon_separation(1.0)
 		set_rotation(true)
 		set_icon_size(fe.layout.height / num_icons * 1.5)
-		set_fade_alpha(63, 255)
+		set_fade_alpha(127, 255)
         
         //local icons = []
 		_icons = []
