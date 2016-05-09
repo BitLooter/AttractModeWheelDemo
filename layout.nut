@@ -1,6 +1,7 @@
 fe.do_nut("wheel.nut")
 
 local wheel_left = Wheel(3.0, 9, "left")
+wheel_left.set_icon_separation(1.2)
 local wheel_right = Wheel(3.0, 1, "right", "cover")
 wheel_right.set_fade_alpha(255, 255)
 wheel_right.set_offset_x(150)
@@ -31,7 +32,9 @@ local debug_speed = fe.add_text("Transition speed: " + wheel_left._conveyor.tran
                                 debug_x, debug_y + debug_height*3, debug_width, debug_height)
 local debug_speed = fe.add_text("Rotation: " + wheel_left.wheel_info.do_rotate,
                                 debug_x, debug_y + debug_height*4, debug_width, debug_height)
-local debug_speed = fe.add_text("Selection hilight: " + wheel_left.wheel_info.do_hilight,
+local debug_speed = fe.add_text("Icon separation: " + wheel_left.wheel_info.icon_sep,
                                 debug_x, debug_y + debug_height*5, debug_width, debug_height)
-local debug_speed = fe.add_text("Artwork: " + wheel_left.wheel_info.artwork,
+local debug_speed = fe.add_text("Selection hilight: " + wheel_left.wheel_info.do_hilight,
                                 debug_x, debug_y + debug_height*6, debug_width, debug_height)
+local debug_speed = fe.add_text("Artwork: " + wheel_left.wheel_info.artwork,
+                                debug_x, debug_y + debug_height*7, debug_width, debug_height)

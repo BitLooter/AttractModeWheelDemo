@@ -31,7 +31,7 @@ class WheelIcon extends ConveyorSlot {
         // "center" progress to be in the middle of its increment
         local progress_centered = progress + 1.0 / (wheel_info.num_icons*2)
         local step = 1.0 / wheel_info.num_icons
-        local angle = (wheel_info.arc * progress_centered) - wheel_info.arc/2
+        local angle = ((wheel_info.arc * progress_centered) - wheel_info.arc/2) * wheel_info.icon_sep
         local x = wheel_info.x + cos( angle ) * wheel_info.radius + wheel_info.offset_x
 		local y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
         local rotation = null
@@ -83,6 +83,7 @@ class Wheel {
     _curvature = null
     _conveyor = null
 	_icons = null
+	_default_sep = null
     
     /************************
       curvature (float): How much to curve the icons. Icons are placed on a
@@ -95,6 +96,7 @@ class Wheel {
         local chord = fe.layout.height
         local arc_angle = 2 * asin(chord / (2 * radius))
         local apothem = sqrt(pow(radius, 2) - pow(chord/2, 2))
+		_default_sep = arc_angle / (num_icons - 1)
         wheel_info = {
             x = -apothem
             y = fe.layout.height/2
@@ -102,12 +104,12 @@ class Wheel {
             arc = arc_angle
 			artwork = artwork
             num_icons = num_icons
-            icon_sep = arc_angle / (num_icons - 1)
             side = side
             do_hilight = true
         }
 		set_offset_x(0)
 		set_offset_y(0)
+		set_icon_separation(1.0)
 		set_rotation(true)
 		set_icon_size(fe.layout.height / num_icons * 1.5)
 		set_fade_alpha(63, 255)
@@ -192,6 +194,12 @@ class Wheel {
 	function set_fade_alpha(min_fade, max_fade) {
 		wheel_info.fadeout_alpha <- min_fade
 		wheel_info.fadein_alpha <- max_fade
+		rerender()
+	}
+	
+	// Set distance between icons
+	function set_icon_separation(multiplier) {
+		wheel_info.icon_sep <- multiplier
 		rerender()
 	}
 }
