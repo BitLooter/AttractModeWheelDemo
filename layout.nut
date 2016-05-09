@@ -2,7 +2,6 @@ fe.do_nut("wheel.nut")
 
 local w = Wheel(3.0, 9, "left")
 //local w = Wheel(3.0, 9, "right")
-w.set_speed(100)
 w._conveyor.reset_progress()
 
 local text_name = fe.add_text("[Title]", 0, fe.layout.height - 100, fe.layout.width, 75)
@@ -27,3 +26,5 @@ local debug_speed = fe.add_text("Transition speed: " + w._conveyor.transition_ms
                                 debug_x, debug_y + debug_height*3, debug_width, debug_height)
 local debug_speed = fe.add_text("Rotation: " + w.wheel_info.do_rotate,
                                 debug_x, debug_y + debug_height*4, debug_width, debug_height)
+local debug_speed = fe.add_text("Selection hilight: " + w.wheel_info.do_hilight,
+                                debug_x, debug_y + debug_height*5, debug_width, debug_height)

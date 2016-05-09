@@ -23,16 +23,18 @@ class WheelIcon extends ConveyorSlot {
         this.base_height = fe.layout.height / wheel_info.num_icons * 1.5
         this.base_width = base_height * 2
         // Index 0 is the selection item
-        if (index == 0) {
-            m_obj.width = base_width * selected_scale
-            m_obj.height = base_height * selected_scale
-            m_obj.alpha = 255
-            m_obj.zorder = 1000     //TODO: zorder doesn't work here
+        if (index == 0 && wheel_info.do_hilight) {
+            _set_hilight_attributes()
+//            m_obj.width = base_width * selected_scale
+//            m_obj.height = base_height * selected_scale
+//            m_obj.alpha = 255
+//            m_obj.zorder = 1000     //TODO: zorder doesn't work here
         } else {
-            m_obj.width = base_width
-            m_obj.height = base_height
-            m_obj.alpha = 63
-            m_obj.video_flags = Vid.NoAudio
+            _set_baseicon_attributes()
+//            m_obj.width = base_width
+//            m_obj.height = base_height
+//            m_obj.alpha = 63
+//            m_obj.video_flags = Vid.NoAudio
         }
     }
     
@@ -40,29 +42,43 @@ class WheelIcon extends ConveyorSlot {
         // "center" progress to be in the middle of its increment
         local progress_centered = progress + 1.0 / (wheel_info.num_icons*2)
         local step = 1.0 / wheel_info.num_icons
-        local a = (wheel_info.arc * progress_centered) - wheel_info.arc/2
-        local x = wheel_info.x + cos( a ) * wheel_info.radius + wheel_info.offset_x
-		local rotation = null
-		if (wheel_info.do_rotate) {
-			rotation = m_obj.rotation = a * 180 / PI
-		} else {
-			rotation = 0
-		}
+        local angle = (wheel_info.arc * progress_centered) - wheel_info.arc/2
+        local x = wheel_info.x + cos( angle ) * wheel_info.radius + wheel_info.offset_x
+        local rotation = null
+        if (wheel_info.do_rotate) {
+            rotation = m_obj.rotation = angle * 180 / PI
+        } else {
+            rotation = 0
+        }
         if (wheel_info.side == "left") {
             m_obj.x = x
-			m_obj.rotation = rotation
+            m_obj.rotation = rotation
         } else {
             m_obj.x = fe.layout.width - x - (base_width * selected_scale)
-			m_obj.rotation = -rotation
+            m_obj.rotation = -rotation
         }
-        m_obj.y = wheel_info.y + sin( a ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
+        m_obj.y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
         // Selection icon gets special treatment
-        if (index == 0) {
+        if (index == 0 && wheel_info.do_hilight) {
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
             m_obj.alpha = 255 - abs(192.0 * fade_amount)
             m_obj.height = base_height*selected_scale - abs(base_height*(selected_scale-1) * (fade_amount))
             m_obj.width = m_obj.height * 2
         }
+    }
+    
+    function _set_baseicon_attributes() {
+        m_obj.width = base_width
+        m_obj.height = base_height
+        m_obj.alpha = 63
+        m_obj.video_flags = Vid.NoAudio
+    }
+    
+    function _set_hilight_attributes() {
+        m_obj.width = base_width * selected_scale
+        m_obj.height = base_height * selected_scale
+        m_obj.alpha = 255
+        m_obj.zorder = 10     //TODO: zorder doesn't work here
     }
 }
 
@@ -70,7 +86,8 @@ class WheelIcon extends ConveyorSlot {
 class Wheel {
     images = []
     wheel_info = null
-	_curvature = null
+    _hilighticon = null
+    _curvature = null
     _conveyor = null
     
     /************************
@@ -94,19 +111,21 @@ class Wheel {
             num_icons = num_icons
             icon_sep = arc_angle/ (num_icons - 1)
             side = side
-			do_rotate = true
+            do_rotate = true
+            do_hilight = true
         }
         
         local icons = []
         for (local i = -num_icons/2; i <= num_icons/2; i++) {
-            icons.append( WheelIcon(i, wheel_info) )
+            local icon = WheelIcon(i, wheel_info)
+            icons.append( icon )
+            if (i == 0) _hilighticon = icon
         }
-		
-		_curvature = curvature
+        
+        _curvature = curvature
 
         _conveyor = Conveyor()
         _conveyor.set_slots(icons)
-        _conveyor.transition_ms = 300
     }
     
     // Sets transition speed in ms
@@ -127,8 +146,17 @@ class Wheel {
     function rerender() {
         _conveyor.reset_progress()
     }
-	
-	function rotation(yesorno) {
-		wheel_info.do_rotate = yesorno
-	}
+    
+    function rotation(yesorno) {
+        wheel_info.do_rotate = yesorno
+    }
+    
+    function hilight(do_hilight) {
+        wheel_info.do_hilight = do_hilight
+        if (do_hilight) {
+            _hilighticon._set_hilight_attributes()
+        } else {
+            _hilighticon._set_baseicon_attributes()
+        }
+    }
 }
