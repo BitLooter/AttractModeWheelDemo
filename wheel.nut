@@ -3,15 +3,14 @@ fe.load_module("conveyor");
 class WheelIcon extends ConveyorSlot {
     index = null
     wheel_info = null
-    base_height = null
-    base_width = null
     selected_scale = 1.5
     fade_start = null
     fade_end = null
     fade_inc = null
     
     constructor(icon_index, wheel_info) {
-        base.constructor(fe.add_artwork("wheel"))
+		local artwork = fe.add_artwork(wheel_info.artwork)
+        base.constructor(artwork)
         this.wheel_info = wheel_info
         this.index = icon_index
         
@@ -20,8 +19,6 @@ class WheelIcon extends ConveyorSlot {
         this.fade_end = fade_start + fade_inc
         
         m_obj.preserve_aspect_ratio = true
-        this.base_height = fe.layout.height / wheel_info.num_icons * 1.5
-        this.base_width = base_height * 2
         // Index 0 is the selection item
         if (index == 0 && wheel_info.do_hilight) {
             _set_hilight_attributes()
@@ -48,31 +45,32 @@ class WheelIcon extends ConveyorSlot {
 			m_obj.y = y
             m_obj.rotation = rotation
         } else {
-            m_obj.x = fe.layout.width - x - m_obj.width
+            m_obj.x = fe.layout.width - x - m_obj.width + wheel_info.offset_x*2
 			// Rotation is from top left, this corrects for right rotation
 			m_obj.y = y + sin(angle) * m_obj.height * 2
             m_obj.rotation = -rotation
         }
         // Selection icon gets special treatment
         if (index == 0 && wheel_info.do_hilight) {
+			m_obj.zorder = 10     //TODO: zorder doesn't work here
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
-            m_obj.alpha = 255 - abs(192.0 * fade_amount)
-            m_obj.height = base_height*selected_scale - abs(base_height*(selected_scale-1) * (fade_amount))
+            m_obj.alpha = wheel_info.fadein_alpha - abs((wheel_info.fadein_alpha - wheel_info.fadeout_alpha) * fade_amount)
+            m_obj.height = wheel_info.base_height*selected_scale - abs(wheel_info.base_height*(selected_scale-1) * fade_amount)
             m_obj.width = m_obj.height * 2
         }
     }
     
     function _set_baseicon_attributes() {
-        m_obj.width = base_width
-        m_obj.height = base_height
-        m_obj.alpha = 63
+        m_obj.width = wheel_info.base_width
+        m_obj.height = wheel_info.base_height
+        m_obj.alpha = wheel_info.fadeout_alpha
         m_obj.video_flags = Vid.NoAudio
     }
     
     function _set_hilight_attributes() {
-        m_obj.width = base_width * selected_scale
-        m_obj.height = base_height * selected_scale
-        m_obj.alpha = 255
+        m_obj.width = wheel_info.base_width * selected_scale
+        m_obj.height = wheel_info.base_height * selected_scale
+        m_obj.alpha = wheel_info.fadein_alpha
         m_obj.zorder = 10     //TODO: zorder doesn't work here
     }
 }
@@ -84,6 +82,7 @@ class Wheel {
     _hilighticon = null
     _curvature = null
     _conveyor = null
+	_icons = null
     
     /************************
       curvature (float): How much to curve the icons. Icons are placed on a
@@ -91,7 +90,7 @@ class Wheel {
         the curvature. Larger numbers make a flatter curve.
       num_icons (int): Number of icons to place on the curve.
     ************************/
-    constructor(curvature=2.0, num_icons=7, side="left") {
+    constructor(curvature=2.0, num_icons=7, side="left", artwork="wheel") {
         local radius = fe.layout.height * curvature / 2
         local chord = fe.layout.height
         local arc_angle = 2 * asin(chord / (2 * radius))
@@ -99,28 +98,32 @@ class Wheel {
         wheel_info = {
             x = -apothem
             y = fe.layout.height/2
-            offset_x = 0
-            offset_y = 0
             radius = radius
             arc = arc_angle
+			artwork = artwork
             num_icons = num_icons
-            icon_sep = arc_angle/ (num_icons - 1)
+            icon_sep = arc_angle / (num_icons - 1)
             side = side
-            do_rotate = true
             do_hilight = true
         }
+		set_offset_x(0)
+		set_offset_y(0)
+		set_rotation(true)
+		set_icon_size(fe.layout.height / num_icons * 1.5)
+		set_fade_alpha(63, 255)
         
-        local icons = []
+        //local icons = []
+		_icons = []
         for (local i = -num_icons/2; i <= num_icons/2; i++) {
             local icon = WheelIcon(i, wheel_info)
-            icons.append( icon )
+            _icons.append( icon )
             if (i == 0) _hilighticon = icon
         }
         
         _curvature = curvature
 
         _conveyor = Conveyor()
-        _conveyor.set_slots(icons)
+        _conveyor.set_slots(_icons)
     }
     
     // Sets transition speed in ms
@@ -128,29 +131,42 @@ class Wheel {
         _conveyor.transition_ms = speed
     }
     
+	// Recalculates icon attributes
+	function _reset_icons() {
+		foreach(icon in _icons) {
+			icon._set_baseicon_attributes()
+		}
+		_hilighticon._set_hilight_attributes()
+	}
+	
     // Forces the wheel to draw the icons again
     function rerender() {
-        _conveyor.reset_progress()
+		if ("reset_progress" in _conveyor) {
+			_reset_icons()
+			_conveyor.reset_progress()
+		}
     }
     
     // Set amount wheel is offset
     function set_offset_x(offset) {
-        wheel_info.offset_x = offset
+        wheel_info.offset_x <- offset
 		rerender()
     }
     
     function set_offset_y(offset) {
-        wheel_info.offset_y = offset
+        wheel_info.offset_y <- offset
 		rerender()
     }
     
-    function rotation(yesorno) {
-        wheel_info.do_rotate = yesorno
+	// Enable/disable icon rotation
+    function set_rotation(yesorno) {
+        wheel_info.do_rotate <- yesorno
 		rerender()
     }
     
-    function hilight(do_hilight) {
-        wheel_info.do_hilight = do_hilight
+	// Enable/disable selection icon hilight
+    function set_hilight(do_hilight) {
+        wheel_info.do_hilight <- do_hilight
         if (do_hilight) {
             _hilighticon._set_hilight_attributes()
         } else {
@@ -158,4 +174,24 @@ class Wheel {
         }
 		rerender()
     }
+	
+	// Sets amount hilight icon will scale relative to base icon height
+	function set_hilight_scale(amount) {
+		_hilighticon.selected_scale = amount
+		rerender()
+	}
+	
+	// Sets height of the base icon in layout units
+	function set_icon_size(size) {
+		wheel_info.base_height <- size
+		wheel_info.base_width <- size * 2
+		rerender()
+	}
+	
+	// Set fade opacity
+	function set_fade_alpha(min_fade, max_fade) {
+		wheel_info.fadeout_alpha <- min_fade
+		wheel_info.fadein_alpha <- max_fade
+		rerender()
+	}
 }
