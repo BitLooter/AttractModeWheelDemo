@@ -25,16 +25,8 @@ class WheelIcon extends ConveyorSlot {
         // Index 0 is the selection item
         if (index == 0 && wheel_info.do_hilight) {
             _set_hilight_attributes()
-//            m_obj.width = base_width * selected_scale
-//            m_obj.height = base_height * selected_scale
-//            m_obj.alpha = 255
-//            m_obj.zorder = 1000     //TODO: zorder doesn't work here
         } else {
             _set_baseicon_attributes()
-//            m_obj.width = base_width
-//            m_obj.height = base_height
-//            m_obj.alpha = 63
-//            m_obj.video_flags = Vid.NoAudio
         }
     }
     
@@ -44,6 +36,7 @@ class WheelIcon extends ConveyorSlot {
         local step = 1.0 / wheel_info.num_icons
         local angle = (wheel_info.arc * progress_centered) - wheel_info.arc/2
         local x = wheel_info.x + cos( angle ) * wheel_info.radius + wheel_info.offset_x
+		local y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
         local rotation = null
         if (wheel_info.do_rotate) {
             rotation = m_obj.rotation = angle * 180 / PI
@@ -52,12 +45,14 @@ class WheelIcon extends ConveyorSlot {
         }
         if (wheel_info.side == "left") {
             m_obj.x = x
+			m_obj.y = y
             m_obj.rotation = rotation
         } else {
-            m_obj.x = fe.layout.width - x - (base_width * selected_scale)
+            m_obj.x = fe.layout.width - x - m_obj.width
+			// Rotation is from top left, this corrects for right rotation
+			m_obj.y = y + sin(angle) * m_obj.height * 2
             m_obj.rotation = -rotation
         }
-        m_obj.y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
         // Selection icon gets special treatment
         if (index == 0 && wheel_info.do_hilight) {
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
@@ -133,22 +128,25 @@ class Wheel {
         _conveyor.transition_ms = speed
     }
     
-    // Set amount wheel is offset
-    function set_offset_x(offset) {
-        wheel_info.offset_x = offset
-    }
-    
-    function set_offset_y(offset) {
-        wheel_info.offset_y = offset
-    }
-    
     // Forces the wheel to draw the icons again
     function rerender() {
         _conveyor.reset_progress()
     }
     
+    // Set amount wheel is offset
+    function set_offset_x(offset) {
+        wheel_info.offset_x = offset
+		rerender()
+    }
+    
+    function set_offset_y(offset) {
+        wheel_info.offset_y = offset
+		rerender()
+    }
+    
     function rotation(yesorno) {
         wheel_info.do_rotate = yesorno
+		rerender()
     }
     
     function hilight(do_hilight) {
@@ -158,5 +156,6 @@ class Wheel {
         } else {
             _hilighticon._set_baseicon_attributes()
         }
+		rerender()
     }
 }
