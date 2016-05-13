@@ -7,6 +7,7 @@ wheel_right.set_fade_alpha(255, 255)
 wheel_right.set_offset_x(150)
 wheel_right.set_icon_size(300)
 wheel_right.set_hilight(false)
+wheel_right.set_direction("up")
 
 local text_name = fe.add_text("[Title]", 0, fe.layout.height - 100, fe.layout.width, 75)
 text_name.align = Align.Right
