@@ -5,19 +5,30 @@ fe.load_module("conveyor");
 
 class WheelIcon extends ConveyorSlot {
     index = null
+	type = null
     wheel_info = null
     selected_scale = 1.5
     fade_start = null
     fade_end = null
     fade_inc = null
+	artwork_text = null
+	last_item = null
     
     constructor(icon_index, wheel_info) {
-        local artwork = fe.add_artwork(wheel_info.artwork)
-        //local artwork = fe.add_surface(400, 200)
-        //local artwork_text = artwork.add_text("[Name]", 0, 50, 400, 50)
-        //artwork_text.word_wrap = true
-        //artwork_text.index_offset = icon_index
-        
+		// Detect to use image or text
+		local artwork = null
+		artwork = fe.add_artwork("wheel")
+		if (_artwork_available("wheel", icon_index)) {
+			type = "image"
+		} else {
+			type = "text"
+		}
+		artwork_text = fe.add_text("[Name]", 0, 50, 400, 200)
+		artwork_text.charsize = 50
+		artwork_text.word_wrap = true
+		artwork_text.index_offset = icon_index
+		artwork_text.bg_green = 255
+		artwork_text.bg_alpha = 127
         base.constructor(artwork)
         this.wheel_info = wheel_info
         this.index = icon_index
@@ -26,7 +37,9 @@ class WheelIcon extends ConveyorSlot {
         this.fade_start = (index + wheel_info.num_icons/2).tofloat() / wheel_info.num_icons
         this.fade_end = fade_start + fade_inc
         
-        m_obj.preserve_aspect_ratio = true
+		if (type == "image") {
+			m_obj.preserve_aspect_ratio = true
+		}
         // Index 0 is the selection item
         if (index == 0 && wheel_info.do_hilight) {
             _set_hilight_attributes()
@@ -40,7 +53,7 @@ class WheelIcon extends ConveyorSlot {
         local progress_centered = progress + 1.0 / (wheel_info.num_icons*2)
         local step = 1.0 / wheel_info.num_icons
         local angle = ((wheel_info.arc * progress_centered) - wheel_info.arc/2) *
-					  wheel_info.icon_sep * wheel_info.direction
+                      wheel_info.icon_sep * wheel_info.direction
         local x = wheel_info.x + cos( angle ) * wheel_info.radius + wheel_info.offset_x
         local y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
         local rotation = null
@@ -49,10 +62,24 @@ class WheelIcon extends ConveyorSlot {
         } else {
             rotation = 0
         }
+		
+		
+		if (type == "image") {
+			m_obj.visible = true
+			artwork_text.visible = false
+		} else {
+			m_obj.visible = false
+			artwork_text.visible = true
+		}
+		
+		
         if (wheel_info.side == "left") {
             m_obj.x = x
             m_obj.y = y
             m_obj.rotation = rotation
+            artwork_text.x = x
+            artwork_text.y = y
+            artwork_text.rotation = rotation
         } else {
             m_obj.x = fe.layout.width - x - m_obj.width + wheel_info.offset_x*2
             // Rotation is from top left, this corrects for right rotation
@@ -61,7 +88,7 @@ class WheelIcon extends ConveyorSlot {
         }
         // Selection icon gets special treatment
         if (index == 0 && wheel_info.do_hilight) {
-            m_obj.zorder = 10     //TODO: zorder doesn't work here
+            m_obj.zorder = 1000
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
             m_obj.alpha = wheel_info.fadein_alpha - abs((wheel_info.fadein_alpha - wheel_info.fadeout_alpha) * fade_amount)
             m_obj.height = wheel_info.base_height*selected_scale - abs(wheel_info.base_height*(selected_scale-1) * fade_amount)
@@ -73,14 +100,28 @@ class WheelIcon extends ConveyorSlot {
         m_obj.width = wheel_info.base_width
         m_obj.height = wheel_info.base_height
         m_obj.alpha = wheel_info.fadeout_alpha
-        m_obj.video_flags = Vid.NoAudio
+		if (type == "image") {
+			m_obj.video_flags = Vid.NoAudio
+		}
     }
+	
+	function _artwork_available(arttype, offset) {
+		return fe.get_art(arttype, offset) != ""
+	}
+	
+	function swap(other) {
+		base.swap(other)
+		if (_artwork_available("wheel", other.index)) {
+			type = "image"
+		} else {
+			type = "text"
+		}
+	}
     
     function _set_hilight_attributes() {
         m_obj.width = wheel_info.base_width * selected_scale
         m_obj.height = wheel_info.base_height * selected_scale
         m_obj.alpha = wheel_info.fadein_alpha
-        m_obj.zorder = 10     //TODO: zorder doesn't work here
     }
 }
 
@@ -120,7 +161,7 @@ class Wheel {
         set_offset_y(0)
         set_icon_separation(1.0)
         set_rotation(true)
-		set_direction("down")
+        set_direction("down")
         set_icon_size(fe.layout.height / num_icons * 1.5)
         set_fade_alpha(127, 255)
         
@@ -212,17 +253,17 @@ class Wheel {
         wheel_info.icon_sep <- multiplier
         rerender()
     }
-	
-	// Sets spin direction
-	function set_direction(direction) {
-		if (direction == "down") {
-			wheel_info.direction <- 1
-		} else if (direction == "up") {
-			wheel_info.direction <- -1
-		} else {
-			//TODO: raise an error here
-			wheel_info.direction <- 1/0
-		}
-		rerender()
-	}
+    
+    // Sets spin direction
+    function set_direction(direction) {
+        if (direction == "down") {
+            wheel_info.direction <- 1
+        } else if (direction == "up") {
+            wheel_info.direction <- -1
+        } else {
+            //TODO: raise an error here
+            wheel_info.direction <- 1/0
+        }
+        rerender()
+    }
 }
