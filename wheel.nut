@@ -2,6 +2,10 @@ fe.load_module("conveyor");
 
 //TODO: fix weird zoom on hilight icon on right wheels
 //TODO: Default image
+//TODO: icon shadows
+//TODO: Use vertex shaders for hardware acceleration
+//TODO: fix selected icon centering
+//TODO: default maximum icon size
 
 class WheelIcon extends ConveyorSlot {
     index = null
@@ -35,7 +39,7 @@ class WheelIcon extends ConveyorSlot {
         this.fade_end = fade_start + fade_inc
         
         // Index 0 is the selection item
-        if (index == 0 && wheel_info.do_hilight) {
+        if (index == 0) {
             _set_hilight_attributes()
         } else {
             _set_baseicon_attributes()
@@ -50,8 +54,8 @@ class WheelIcon extends ConveyorSlot {
                       wheel_info.icon_sep * wheel_info.direction
         local x = wheel_info.x + cos( angle ) * wheel_info.radius + wheel_info.offset_x
         // Correct for rotation centered at top left rather than center
-        x = x + sin(angle) * m_obj.height / 2
-        local y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - m_obj.height/2
+        x = x + sin(angle) * artwork_image.height / 2
+        local y = wheel_info.y + sin( angle ) * wheel_info.radius  + wheel_info.offset_y - artwork_image.height/2
         local rotation = null
         if (wheel_info.do_rotate) {
             rotation = angle * 180 / PI
@@ -68,9 +72,9 @@ class WheelIcon extends ConveyorSlot {
         }
         
         if (wheel_info.side == "right") {
-            x = fe.layout.width - x - m_obj.width + wheel_info.offset_x*2
+            x = fe.layout.width - x - artwork_image.width + wheel_info.offset_x*2
             // Rotation is centered at top left, this corrects for right rotation
-            y = y + sin(angle) * m_obj.width
+            y = y + sin(angle) * artwork_image.width
             rotation = -rotation
         }
         
@@ -80,7 +84,7 @@ class WheelIcon extends ConveyorSlot {
         
         // Selection icon gets special treatment
         if (index == 0 && wheel_info.do_hilight) {
-            m_obj.zorder = 1000
+            artwork_image.zorder = artwork_text.zorder = 1000
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
             local alpha = wheel_info.fadein_alpha - abs((wheel_info.fadein_alpha - wheel_info.fadeout_alpha) * fade_amount)
             local height = wheel_info.base_height*selected_scale - abs(wheel_info.base_height*(selected_scale-1) * fade_amount)
@@ -127,9 +131,13 @@ class WheelIcon extends ConveyorSlot {
     }
     
     function _set_hilight_attributes() {
-        artwork_image.width = artwork_text.width = wheel_info.base_width * selected_scale
-        artwork_image.height = artwork_text.height = wheel_info.base_height * selected_scale
-        artwork_image.alpha = artwork_text.alpha = wheel_info.fadein_alpha
+        if (wheel_info.do_hilight) {
+            artwork_image.width = artwork_text.width = wheel_info.base_width * selected_scale
+            artwork_image.height = artwork_text.height = wheel_info.base_height * selected_scale
+            artwork_image.alpha = artwork_text.alpha = wheel_info.fadein_alpha
+        } else {
+            _set_baseicon_attributes()
+        }
     }
 }
 
@@ -148,6 +156,8 @@ class Wheel {
         circle with a diameter equal to the height of the layout mulplied by
         the curvature. Larger numbers make a flatter curve.
       num_icons (int): Number of icons to place on the curve.
+      side (string): Side of the layout, "left" or "right"
+      artwork (string): Artwork type to use as icons
     ************************/
     constructor(curvature=2.0, num_icons=7, side="left", artwork="wheel") {
         local radius = fe.layout.height * curvature / 2
@@ -163,10 +173,11 @@ class Wheel {
             artwork = artwork
             num_icons = num_icons
             side = side
-            do_hilight = true
+            //do_hilight = true
         }
         set_offset_x(0)
         set_offset_y(0)
+        set_hilight(true)
         set_icon_separation(1.0)
         set_rotation(true)
         set_direction("down")
@@ -227,10 +238,8 @@ class Wheel {
     // Enable/disable selection icon hilight
     function set_hilight(do_hilight) {
         wheel_info.do_hilight <- do_hilight
-        if (do_hilight) {
+        if (_hilighticon != null) {
             _hilighticon._set_hilight_attributes()
-        } else {
-            _hilighticon._set_baseicon_attributes()
         }
         rerender()
     }
@@ -264,9 +273,9 @@ class Wheel {
     // Sets spin direction
     function set_direction(direction) {
         if (direction == "down") {
-            wheel_info.direction <- 1
-        } else if (direction == "up") {
             wheel_info.direction <- -1
+        } else if (direction == "up") {
+            wheel_info.direction <- 1
         } else {
             //TODO: raise an error here
             wheel_info.direction <- 1/0
