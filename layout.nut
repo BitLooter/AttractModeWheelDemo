@@ -7,17 +7,19 @@ class UserConfig {
     hilight = "Yes"
     </ label="Number of items", help="Number of items on the wheel", options="1,3,5,7,9,11,13,15", order=3 />
     num_icons = "9"
-    </ label="Curvature", help="Curve of the wheel. Higher numbers make a straighter curve", order=4 />
+    </ label="Shadows", help="Enable or disable shadows on wheel items", options="Yes,No", order=4 />
+    shadows = "Yes"
+    </ label="Curvature", help="Curve of the wheel. Higher numbers make a straighter curve", order=5 />
     curvature = "3.0"
-    </ label="Item separation", help="Multiplier to control item distance", order=5 />
+    </ label="Item separation", help="Multiplier to control item distance", order=6 />
     separation = 1.2
-    </ label="Artwork", help="Artwork type to use on wheel items", order=6,
+    </ label="Artwork", help="Artwork type to use on wheel items", order=7,
        options="wheel,marquee,cover,flyer,snap,title" />
     artwork_type = "wheel"
-    </ label="Direction", help="Spin direction of wheel on next item selection", order=7,
+    </ label="Direction", help="Spin direction of wheel on next item selection", order=8,
        options="clockwise,counterclockwise" />
     direction = "counterclockwise"
-    </ label="Debug information", help="Displays information about the wheels", options="Yes,No", order=8 />
+    </ label="Debug information", help="Displays information about the wheels", options="Yes,No", order=9 />
     debug = "Yes"
 }
 
@@ -25,6 +27,11 @@ fe.layout.width = 1920
 fe.layout.height = 1080
 
 fe.do_nut("wheel.nut")
+
+local bg = fe.add_image("white.png", 0, 0, 1920, 1080)
+bg.red = 127
+bg.green = 127
+bg.blue = 127
 
 local config = fe.get_config()
 // Convert config values from strings
@@ -34,12 +41,14 @@ config.hilight = config.hilight == "Yes"
 config.curvature = config.curvature.tofloat()
 config.separation = config.separation.tofloat()
 config.debug = config.debug == "Yes"
+config.shadows = config.shadows == "Yes"
 
 local wheel_left = Wheel(config.curvature, config.num_icons, "left", config.artwork_type)
 wheel_left.set_speed(config.speed)
 wheel_left.set_icon_separation(config.separation)
 wheel_left.set_hilight(config.hilight)
 wheel_left.set_direction(config.direction)
+wheel_left.set_shadows(config.shadows)
 local wheel_right = Wheel(1.5, 3, "right", "cover")
 wheel_right.set_speed(config.speed)
 wheel_right.set_icon_separation(3)

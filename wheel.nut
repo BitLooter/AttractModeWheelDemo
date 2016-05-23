@@ -6,6 +6,7 @@ fe.load_module("conveyor");
 //TODO: Use vertex shaders for hardware acceleration
 //TODO: fix selected icon centering
 //TODO: default maximum icon size
+//TODO: text replacement is still wonky
 
 class WheelIcon extends ConveyorSlot {
     index = null
@@ -15,24 +16,35 @@ class WheelIcon extends ConveyorSlot {
     fade_start = null
     fade_end = null
     fade_inc = null
-    artwork_image = null
-    artwork_text = null
     last_item = null
+    artwork = null
     
     constructor(icon_index, wheel_info) {
         index = icon_index
         this.wheel_info = wheel_info
-        // Detect to use image or text
-        artwork_image = fe.add_artwork(wheel_info.artwork)
+        
+        local artwork_shadow = fe.add_artwork(wheel_info.artwork)
+        artwork_shadow.red = 0
+        artwork_shadow.green = 0
+        artwork_shadow.blue = 0
+        artwork_shadow.preserve_aspect_ratio = true
+        local artwork_image = fe.add_artwork(wheel_info.artwork)
         artwork_image.preserve_aspect_ratio = true
-        _set_icon_type()
-        artwork_text = fe.add_text("[Title]", 0, 50, 400, 200)
+        local artwork_text = fe.add_text("[Title]", 0, 50, 400, 200)
         artwork_text.charsize = artwork_text.height/4
         artwork_text.word_wrap = true
         artwork_text.index_offset = icon_index
         artwork_text.bg_green = 255
         artwork_text.bg_alpha = 127
-        base.constructor(artwork_image)
+        artwork = {
+            image = artwork_image,
+            shadow = artwork_shadow,
+            text = artwork_text
+        }
+        // Detect to use image or text
+        _set_icon_type()
+        base.constructor(artwork)
+        //base.constructor(artwork_image)
         
         this.fade_inc = (1.0 / wheel_info.num_icons)
         this.fade_start = (index + wheel_info.num_icons/2).tofloat() / wheel_info.num_icons
@@ -47,6 +59,10 @@ class WheelIcon extends ConveyorSlot {
     }
     
     function on_progress(progress, direction) {
+        local artwork_image = m_obj["image"]
+        local artwork_shadow = m_obj["shadow"]
+        local artwork_text = m_obj["text"]
+        
         // "center" progress to be in the middle of its increment
         local progress_centered = progress + 1.0 / (wheel_info.num_icons*2)
         local step = 1.0 / wheel_info.num_icons
@@ -66,8 +82,10 @@ class WheelIcon extends ConveyorSlot {
         if (type == "image") {
             artwork_image.visible = true
             artwork_text.visible = false
+            artwork_shadow.visible = wheel_info.shadows
         } else {
             artwork_image.visible = false
+            artwork_shadow.visible = false
             artwork_text.visible = true
         }
         
@@ -82,16 +100,21 @@ class WheelIcon extends ConveyorSlot {
         artwork_image.y = artwork_text.y = y
         artwork_image.rotation = artwork_text.rotation = rotation
         
+        artwork_shadow.x = x + 10
+        artwork_shadow.y = y + 10
+        artwork_shadow.rotation = rotation
+        
         // Selection icon gets special treatment
         if (index == 0 && wheel_info.do_hilight) {
             artwork_image.zorder = artwork_text.zorder = 1000
+            artwork_shadow.zorder = 20
             local fade_amount = (fade_start + fade_inc/2 - progress_centered) * wheel_info.num_icons*2
             local alpha = wheel_info.fadein_alpha - abs((wheel_info.fadein_alpha - wheel_info.fadeout_alpha) * fade_amount)
             local height = wheel_info.base_height*selected_scale - abs(wheel_info.base_height*(selected_scale-1) * fade_amount)
             local width = height * 2
-            artwork_image.width = artwork_text.width = width
-            artwork_image.height = artwork_text.height = height
-            artwork_image.alpha = artwork_text.alpha = alpha
+            artwork_image.width = artwork_shadow.width = artwork_text.width = width
+            artwork_image.height = artwork_shadow.height = artwork_text.height = height
+            artwork_image.alpha = artwork_shadow.alpha = artwork_text.alpha = alpha
             artwork_text.charsize = height/4
         }
     }
@@ -115,26 +138,38 @@ class WheelIcon extends ConveyorSlot {
         }
     }
     
+    function set_index_offset(offset) {
+        m_obj["image"].index_offset = offset
+        m_obj["shadow"].index_offset = offset
+        m_obj["text"].index_offset = offset
+        _set_icon_type(offset)
+    }
+    
     function swap(other) {
-        //BUG: This doesn't get called on a wheel with one icon, so the type never changes
         base.swap(other)
         _set_icon_type(other.index)
     }
     
     function _set_baseicon_attributes() {
-        artwork_image.width = artwork_text.width = wheel_info.base_width
-        artwork_image.height = artwork_text.height = wheel_info.base_height
-        artwork_image.alpha = artwork_text.alpha = wheel_info.fadeout_alpha
+        local artwork_image = m_obj["image"]
+        local artwork_shadow = m_obj["shadow"]
+        local artwork_text = m_obj["text"]
+        artwork_image.width = artwork_shadow.width = artwork_text.width = wheel_info.base_width
+        artwork_image.height = artwork_shadow.height = artwork_text.height = wheel_info.base_height
+        artwork_image.alpha = artwork_shadow.alpha = artwork_text.alpha = wheel_info.fadeout_alpha
         if (type == "image") {
             artwork_image.video_flags = Vid.NoAudio
         }
     }
     
     function _set_hilight_attributes() {
+        local artwork_image = m_obj["image"]
+        local artwork_shadow = m_obj["shadow"]
+        local artwork_text = m_obj["text"]
         if (wheel_info.do_hilight) {
-            artwork_image.width = artwork_text.width = wheel_info.base_width * selected_scale
-            artwork_image.height = artwork_text.height = wheel_info.base_height * selected_scale
-            artwork_image.alpha = artwork_text.alpha = wheel_info.fadein_alpha
+            artwork_image.width = artwork_shadow.width = artwork_text.width = wheel_info.base_width * selected_scale
+            artwork_image.height = artwork_shadow.height = artwork_text.height = wheel_info.base_height * selected_scale
+            artwork_image.alpha = artwork_shadow.alpha = artwork_text.alpha = wheel_info.fadein_alpha
         } else {
             _set_baseicon_attributes()
         }
@@ -173,7 +208,6 @@ class Wheel extends Conveyor {
             artwork = artwork
             num_icons = num_icons
             side = side
-            //do_hilight = true
         }
         set_offset_x(0)
         set_offset_y(0)
@@ -183,6 +217,7 @@ class Wheel extends Conveyor {
         set_direction("counterclockwise")
         set_icon_size(fe.layout.height / num_icons * 1.5)
         set_fade_alpha(127, 255)
+        set_shadows(false)
         
         _icons = []
         for (local i = -num_icons/2; i <= num_icons/2; i++) {
@@ -194,9 +229,9 @@ class Wheel extends Conveyor {
         _curvature = curvature
 
         //_conveyor = Conveyor()
-		base.constructor()
+        base.constructor()
         set_slots(_icons)
-		
+        
     }
     
     // Sets transition speed in ms
@@ -282,9 +317,15 @@ class Wheel extends Conveyor {
             //TODO: raise an error here
             wheel_info.direction <- 1/0
         }
-		if (wheel_info.side == "right") {
-			wheel_info.direction *= -1
-		}
+        if (wheel_info.side == "right") {
+            wheel_info.direction *= -1
+        }
+        rerender()
+    }
+
+    // Enable or disable icon shadows
+    function set_shadows(do_shadows) {
+        wheel_info.shadows <- do_shadows
         rerender()
     }
 }
