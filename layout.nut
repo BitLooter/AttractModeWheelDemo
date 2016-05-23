@@ -15,11 +15,14 @@ class UserConfig {
        options="wheel,marquee,cover,flyer,snap,title" />
     artwork_type = "wheel"
     </ label="Direction", help="Spin direction of wheel on next item selection", order=7,
-       options="up,down" />
-    direction = "up"
+       options="clockwise,counterclockwise" />
+    direction = "counterclockwise"
     </ label="Debug information", help="Displays information about the wheels", options="Yes,No", order=8 />
     debug = "Yes"
 }
+
+fe.layout.width = 1920
+fe.layout.height = 1080
 
 fe.do_nut("wheel.nut")
 
@@ -42,9 +45,8 @@ wheel_right.set_speed(config.speed)
 wheel_right.set_icon_separation(3)
 wheel_right.set_fade_alpha(255, 255)
 wheel_right.set_offset_x(200)
-wheel_right.set_icon_size(300)
+wheel_right.set_icon_size(400)
 wheel_right.set_hilight(false)
-wheel_right.set_direction("down")
 
 local text_name = fe.add_text("[Title]", 0, fe.layout.height - 100, fe.layout.width, 75)
 text_name.align = Align.Right
@@ -54,12 +56,12 @@ text_system.align = Align.Right
 
 // Debug info
 local debug_x = fe.layout.width/4
-local debug_y = 300
+local debug_y = 200
 local debug_width = fe.layout.width/2
 local debug_height = 40
 if (config.debug == true) {
     // Both wheels
-    fe.add_text("Transition speed: " + wheel_left._conveyor.transition_ms,
+    fe.add_text("Transition speed: " + wheel_left.transition_ms,
                 debug_x, debug_y + debug_height*-3, debug_width, debug_height)
     // Left wheel
     fe.add_text("LEFT WHEEL",

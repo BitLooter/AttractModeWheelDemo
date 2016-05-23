@@ -142,7 +142,7 @@ class WheelIcon extends ConveyorSlot {
 }
 
 
-class Wheel {
+class Wheel extends Conveyor {
     images = []
     wheel_info = null
     _hilighticon = null
@@ -180,7 +180,7 @@ class Wheel {
         set_hilight(true)
         set_icon_separation(1.0)
         set_rotation(true)
-        set_direction("down")
+        set_direction("counterclockwise")
         set_icon_size(fe.layout.height / num_icons * 1.5)
         set_fade_alpha(127, 255)
         
@@ -193,13 +193,15 @@ class Wheel {
         
         _curvature = curvature
 
-        _conveyor = Conveyor()
-        _conveyor.set_slots(_icons)
+        //_conveyor = Conveyor()
+		base.constructor()
+        set_slots(_icons)
+		
     }
     
     // Sets transition speed in ms
     function set_speed(speed) {
-        _conveyor.transition_ms = speed
+        transition_ms = speed
     }
     
     // Recalculates icon attributes
@@ -212,9 +214,9 @@ class Wheel {
     
     // Forces the wheel to draw the icons again
     function rerender() {
-        if ("reset_progress" in _conveyor) {
+        if (m_objs.len() > 0) {
             _reset_icons()
-            _conveyor.reset_progress()
+            reset_progress()
         }
     }
     
@@ -272,14 +274,17 @@ class Wheel {
     
     // Sets spin direction
     function set_direction(direction) {
-        if (direction == "down") {
-            wheel_info.direction <- -1
-        } else if (direction == "up") {
+        if (direction == "counterclockwise") {
             wheel_info.direction <- 1
+        } else if (direction == "clockwise") {
+            wheel_info.direction <- -1
         } else {
             //TODO: raise an error here
             wheel_info.direction <- 1/0
         }
+		if (wheel_info.side == "right") {
+			wheel_info.direction *= -1
+		}
         rerender()
     }
 }
